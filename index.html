@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Snake Game</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0;
+    }
+
+    #game-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    canvas {
+      border: 2px solid #000;
+      background-color: #fff;
+    }
+
+    .controls {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .controls input {
+      margin: 5px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    #optionsMenu {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+<div id="game-container">
+  <canvas id="gameCanvas"></canvas>
+
+  <div class="controls">
+    <button id="startGame">Начать игру</button>
+    <button id="showOptions">Опции</button>
+  </div>
+
+  <div id="optionsMenu" class="hidden">
+    <label>
+      Ширина: <input type="number" id="fieldWidth" value="20">
+    </label>
+    <label>
+      Высота: <input type="number" id="fieldHeight" value="20">
+    </label>
+    <label>
+      Сложность (шагов в секунду):
+      <select id="speed">
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="5">5</option>
+      </select>
+    </label>
+    <button id="applyOptions">Применить</button>
+  </div>
+</div>
+
+<script>
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+
+  const startButton = document.getElementById('startGame');
+  const optionsButton = document.getElementById('showOptions');
+  const optionsMenu = document.getElementById('optionsMenu');
+  const applyOptionsButton = document.getElementById('applyOptions');
+
+  const fieldWidthInput = document.getElementById('fieldWidth');
+  const fieldHeightInput = document.getElementById('fieldHeight');
+  const speedInput = document.getElementById('speed');
+
+  let gridSize = 20;
+  let fieldWidth = 20;
+  let fieldHeight = 20;
+  let speed = 2;
+
+  let snake = [{x: 10, y: 10}];
+  let direction = null;
+  let apple = {x: 5, y: 5};
+  let score = 0;
+  let gameInterval;
+
+  function resetGame() {
+    snake = [{x: Math.floor(fieldWidth / 2), y: Math.floor(fieldHeight / 2)}];
+    direction = null;
+    placeApple();
+    score = 0;
+  }
+
+  function placeApple() {
+    apple = {
+      x: Math.floor(Math.random() * fieldWidth),
+      y: Math.floor(Math.random() * fieldHeight)
+    };
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = 'green';
+    snake.forEach((segment) => {
+      ctx.beginPath();
+      ctx.arc(segment.x * gridSize + gridSize / 2, segment.y * gridSize + gridSize / 2,
+          gridSize / 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // Draw apple
+    ctx.fillStyle = 'red';
+    ctx.beginPath();
+    ctx.arc(apple.x * gridSize + gridSize / 2, apple.y * gridSize + gridSize / 2, gridSize / 3, 0,
+        Math.PI * 2);
+    ctx.fill();
+
+    // Draw score and difficulty
+    ctx.fillStyle = 'black';
+    ctx.font = '16px Arial';
+    ctx.fillText(`Очки: ${score}`, 10, canvas.height - 10);
+    ctx.fillText(`Скорость: ${speed}`, canvas.width - 100, canvas.height - 10);
+  }
+
+  function moveSnake() {
+    if (!direction) {
+      return;
+    }
+
+    const head = {x: snake[0].x + direction.x, y: snake[0].y + direction.y};
+
+    if (
+        head.x < 0 || head.x >= fieldWidth ||
+        head.y < 0 || head.y >= fieldHeight ||
+        snake.some(segment => segment.x === head.x && segment.y === head.y)
+    ) {
+      clearInterval(gameInterval);
+      alert('Игра окончена!');
+      resetGame();
+      return;
+    }
+
+    snake.unshift(head);
+
+    if (head.x === apple.x && head.y === apple.y) {
+      score++;
+      placeApple();
+    } else {
+      snake.pop();
+    }
+
+    draw();
+  }
+
+  function startGame() {
+    resetGame();
+    canvas.width = fieldWidth * gridSize;
+    canvas.height = fieldHeight * gridSize;
+    draw();
+    clearInterval(gameInterval);
+    gameInterval = setInterval(moveSnake, 1000 / speed);
+  }
+
+  function changeDirection(event) {
+    const newDirection = {...direction};
+    switch (event.key) {
+      case 'ArrowUp':
+        if (direction?.y !== 1) {
+          newDirection.x = 0;
+          newDirection.y = -1;
+        }
+        break;
+      case 'ArrowDown':
+        if (direction?.y !== -1) {
+          newDirection.x = 0;
+          newDirection.y = 1;
+        }
+        break;
+      case 'ArrowLeft':
+        if (direction?.x !== 1) {
+          newDirection.x = -1;
+          newDirection.y = 0;
+        }
+        break;
+      case 'ArrowRight':
+        if (direction?.x !== -1) {
+          newDirection.x = 1;
+          newDirection.y = 0;
+        }
+        break;
+    }
+    direction = newDirection;
+    return false
+  }
+
+  optionsButton.addEventListener('click', () => {
+    optionsMenu.classList.toggle('hidden');
+  });
+
+  applyOptionsButton.addEventListener('click', () => {
+    fieldWidth = parseInt(fieldWidthInput.value);
+    fieldHeight = parseInt(fieldHeightInput.value);
+    speed = parseInt(speedInput.value);
+    optionsMenu.classList.add('hidden');
+  });
+
+  startButton.addEventListener('click', startGame);
+  window.addEventListener('keydown', changeDirection);
+</script>
+</body>
+</html>
